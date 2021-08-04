@@ -31,13 +31,11 @@
                 <v-expansion-panel-content>
                     <v-row class="ma-3">
                         {{item.descricao}}
-
-                        
                     </v-row>
                     <v-row class="ma-2">
                         <v-spacer></v-spacer>
                         <button
-                            @click="Deletar(item)"
+                            @click="ExibirExcluir(item, i)"
                         >
                             <v-icon>mdi-delete</v-icon>
                         </button>
@@ -75,15 +73,22 @@
                 max-width="1000px"
             >
                 <v-card class="pa-5">
+                    <v-card-title>
+                        Pergunta
+                    </v-card-title>
                     <v-card-text>
                         <v-text-field
                             v-model="titulo"
                             label="Titulo"
+                            :rules="tituloRules"
+                            required
                          ></v-text-field>
                         <v-textarea
                             counter
                             v-model="descricao"
                             label="Descricao"
+                            :rules="descricaoRules"
+                            required
                         ></v-textarea>
                     </v-card-text>
         
@@ -98,7 +103,38 @@
                         </v-btn>
                     </v-card-actions>
                     </v-card>
-          </v-dialog>
+            </v-dialog>
+            <v-dialog
+            v-model="excluir"
+            max-width="290"
+            >
+            <v-card>
+                <v-card-title class="text-h5">
+                    Excluir               
+                </v-card-title>
+                <v-card-text>
+                    Deseja realmente excluir?
+                </v-card-text>
+                <v-card-actions>
+                <v-spacer></v-spacer>
+                <v-btn
+                    color="red"
+                    text
+                    @click="excluir = false"
+                >
+                    Cancelar
+                </v-btn>
+
+                <v-btn
+                    color="success"
+                    text
+                    @click="Deletar()"
+                >
+                    Excluir
+                </v-btn>
+                </v-card-actions>
+            </v-card>
+            </v-dialog>
         </v-row>
     </v-container>
 </template>
@@ -111,6 +147,7 @@ export default {
     data() {
         return {
             dialog: false,
+            excluir: false,
             titulo: '',
             descricao: '',
             itensRetornados: [],
@@ -118,23 +155,32 @@ export default {
             pesquisa: '',
             carregar: false,
             bottom: false,
-            paginacao: 1
+            paginacao: 1,
+            item: {},
+            index: 0,
+            tituloRules: [v => !!v || 'Título é Obrigatório!'],
+            descricaoRules: [v => !!v || 'Descrição é Obrigatório!']
         }
     },
     methods: {
-        Deletar(item){
-            console.log(item);
+        ExibirExcluir(item, i){
+            this.excluir = !this.excluir;
+            this.item = item;
+            this.index = i;
+        },
+        Deletar(){
             api.delete('/Pergunta', {
                 data: {
-                    id: item.id,
-                    titulo: item.titulo,
-                    descricao: item.descricao
+                    id: this.item.id,
+                    titulo: this.item.titulo,
+                    descricao: this.item.descricao
                 }
             }
             ).then(response => {
                 if (response.data == true) {
+                    this.excluir = !this.excluir;
                     this.Buscar()
-                    this.itens.splice(item, 0)
+                    this.itens.splice(this.index, 1)
                 }
             }).catch(function (error) {
                 console.log(error);
@@ -156,6 +202,7 @@ export default {
                                                          x.descricao.toUpperCase().includes(this.pesquisa.toUpperCase()));
         },
         Salvar() {
+            if(this.titulo == "" || this.descricao == "") return
             api.post('/Pergunta', 
             {
                 titulo: this.titulo,
@@ -177,7 +224,6 @@ export default {
             }).catch(function (error) {
                 console.log(error);
             })
-            
         },
         Buscar(){
             api.get('/Pergunta/?pagina='+ this.paginacao)
